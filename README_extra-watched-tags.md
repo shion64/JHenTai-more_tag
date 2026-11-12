@@ -1,6 +1,6 @@
 # JHenTai: Extra Watched Tags (unofficial fork)
 
-This branch adds **local watched tags** to [JHenTai](https://github.com/jiangtian616/JHenTai). It is an unofficial modification and is not affiliated with the upstream project.
+This repository ([shion64/JHenTai-more_tag](https://github.com/shion64/JHenTai-more_tag)) adds **local watched tags** to [JHenTai](https://github.com/jiangtian616/JHenTai). It is an unofficial modification and is not affiliated with the upstream project.
 
 The code was written with the help of an AI assistant (Claude). It has **not** been submitted upstream. The upstream contribution guidelines do not accept large AI-written changes without human code review.
 
@@ -27,12 +27,11 @@ E-Hentai limits how many tags you can watch online. This feature stores extra wa
 
 ## Status
 
-Verified on Linux only:
+Checked on Linux only, by a GitHub Actions workflow (`linux-check`, run from separate `ci-*` branches), not on a local Flutter install:
 
-- `flutter build linux --release` succeeds.
+- The Linux release build succeeds.
 - `flutter analyze` reports no errors from these changes.
 - `flutter test` passes, including new tests for tag handling.
-- Manually checked on a Linux desktop build.
 
 Not verified: Android, iOS, Windows, macOS, and a real phone-sized layout.
 
@@ -44,6 +43,8 @@ Translations are provided for English, Simplified Chinese and Traditional Chines
 - The setting is stored under the config key `extraWatchedTagSetting`. Remove the tags from the management page to clear it.
 
 ## Building
+
+Same as upstream. With Flutter installed:
 
 ```
 flutter pub get
