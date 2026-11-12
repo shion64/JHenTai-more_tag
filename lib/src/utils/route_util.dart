@@ -9,6 +9,26 @@ import 'package:jhentai/src/setting/style_setting.dart';
 import '../model/jh_layout.dart';
 import '../pages/layout/desktop/desktop_layout_page_logic.dart';
 
+/// A route closed by back action. It can be reopened by [forwardRoute] (mouse forward button).
+class _ClosedRoute {
+  final String routeName;
+  final dynamic arguments;
+
+  const _ClosedRoute(this.routeName, this.arguments);
+}
+
+const int _maxForwardRoutes = 20;
+
+/// Routes which should never be reopened by forward action.
+const Set<String> _noForwardRoutes = {Routes.home, Routes.lock, Routes.blank, Routes.desktopHome};
+
+/// Routes on which mouse side buttons must not navigate:
+/// the read page and keyboard shortcuts page use them by themselves, and the lock page must not be dismissed.
+const Set<String> _mouseNavigationDisabledRoutes = {Routes.read, Routes.settingKeyboardShortcuts, Routes.lock};
+
+final List<_ClosedRoute> _forwardRoutes = [];
+bool _isGoingForward = false;
+
 /// adaptive to different layout
 Future<T?>? toRoute<T>(
   String routeName, {
@@ -18,6 +38,10 @@ Future<T?>? toRoute<T>(
   Map<String, String>? parameters,
   int? id,
 }) {
+  if (!_isGoingForward) {
+    clearForwardRoutes();
+  }
+
   EHPage page = Routes.pages.firstWhere((page) => page.name == routeName);
 
   /// only one [Route]
@@ -101,22 +125,19 @@ void backRoute<T>({
 }) {
   Side side = Routes.pages.firstWhereOrNull((page) => page.name == currentRoute)?.side ?? Side.fullScreen;
 
-  return Get.back(
-    result: result,
-    closeOverlays: closeOverlays,
-    canPop: canPop,
-    id: styleSetting.isInMobileLayout
-        ? null
-        : side == Side.left
-            ? styleSetting.isInV2Layout
-                ? leftV2
-                : left
-            : side == Side.right
-                ? styleSetting.isInV2Layout
-                    ? rightV2
-                    : right
-                : null,
-  );
+  int? id = styleSetting.isInMobileLayout
+      ? null
+      : side == Side.left
+          ? styleSetting.isInV2Layout
+              ? leftV2
+              : left
+          : side == Side.right
+              ? styleSetting.isInV2Layout
+                  ? rightV2
+                  : right
+              : null;
+
+  return _popAndRecord(id, () => Get.back(result: result, closeOverlays: closeOverlays, canPop: canPop, id: id));
 }
 
 /// pop current active route triggered by esc or fifth button or system back button
@@ -125,35 +146,28 @@ void popLeftRoute<T>({
   bool closeOverlays = false,
   bool canPop = true,
 }) {
-  return Get.back(
-    result: result,
-    closeOverlays: closeOverlays,
-    canPop: canPop,
-    id: styleSetting.isInMobileLayout
-        ? null
-        : styleSetting.isInV2Layout
-            ? leftV2
-            : left,
-  );
+  int? id = styleSetting.isInMobileLayout
+      ? null
+      : styleSetting.isInV2Layout
+          ? leftV2
+          : left;
+
+  return _popAndRecord(id, () => Get.back(result: result, closeOverlays: closeOverlays, canPop: canPop, id: id));
 }
 
 /// pop current active right route triggered by esc or fifth button or system back button
-
 void popRightRoute<T>({
   T? result,
   bool closeOverlays = false,
   bool canPop = true,
 }) {
-  return Get.back(
-    result: result,
-    closeOverlays: closeOverlays,
-    canPop: canPop,
-    id: styleSetting.isInMobileLayout
-        ? null
-        : styleSetting.isInV2Layout
-            ? rightV2
-            : right,
-  );
+  int? id = styleSetting.isInMobileLayout
+      ? null
+      : styleSetting.isInV2Layout
+          ? rightV2
+          : right;
+
+  return _popAndRecord(id, () => Get.back(result: result, closeOverlays: closeOverlays, canPop: canPop, id: id));
 }
 
 /// pop current route and push a new route
@@ -163,6 +177,8 @@ Future<T?>? offRoute<T>(
   bool preventDuplicates = true,
   Map<String, String>? parameters,
 }) {
+  clearForwardRoutes();
+
   Side side = Routes.pages.firstWhereOrNull((page) => page.name == routeName)?.side ?? Side.fullScreen;
 
   return Get.offNamed(
@@ -237,4 +253,111 @@ bool isRouteAtTop(String routeName) {
   }
 
   return rightRouting.current == routeName;
+}
+
+/// forget the routes that can be reopened by forward action, called when user navigates to somewhere new
+void clearForwardRoutes() {
+  _forwardRoutes.clear();
+}
+
+/// pop current active route, triggered by mouse back button
+void backActiveRoute() {
+  if (_isMouseNavigationBlocked()) {
+    return;
+  }
+
+  /// a page is opened over home page: mobile layout, read page, etc.
+  if (Get.key.currentState?.canPop() == true) {
+    _popAndRecord(null, () => Get.back());
+    return;
+  }
+
+  if (styleSetting.isInMobileLayout) {
+    return;
+  }
+
+  int rightId = styleSetting.isInV2Layout ? rightV2 : right;
+  int leftId = styleSetting.isInV2Layout ? leftV2 : left;
+
+  if (Get.keys[rightId]?.currentState?.canPop() == true) {
+    popRightRoute();
+    return;
+  }
+
+  if (Get.keys[leftId]?.currentState?.canPop() == true) {
+    popLeftRoute();
+  }
+}
+
+/// reopen the route most recently closed by back action, triggered by mouse forward button
+void forwardRoute() {
+  if (_forwardRoutes.isEmpty || _isMouseNavigationBlocked()) {
+    return;
+  }
+
+  _ClosedRoute closedRoute = _forwardRoutes.removeLast();
+
+  _isGoingForward = true;
+  try {
+    toRoute(
+      closedRoute.routeName,
+      arguments: closedRoute.arguments,
+      preventDuplicates: false,
+      offAllBefore: false,
+    );
+  } finally {
+    _isGoingForward = false;
+  }
+}
+
+/// whether mouse back/forward buttons should be ignored now
+bool _isMouseNavigationBlocked() {
+  /// dialog or bottom sheet is shown
+  if (_topRoute(null) is PopupRoute) {
+    return true;
+  }
+
+  return [null, left, right, leftV2, rightV2].any((int? id) => _mouseNavigationDisabledRoutes.contains(_topRoute(id)?.settings.name));
+}
+
+/// the [Route] on top of navigator [id], null means the root navigator
+Route<dynamic>? _topRoute(int? id) {
+  NavigatorState? navigator = id == null ? Get.key.currentState : Get.keys[id]?.currentState;
+
+  Route<dynamic>? top;
+  navigator?.popUntil((route) {
+    top = route;
+    return true;
+  });
+  return top;
+}
+
+/// run [pop] and remember the route it closed, so that it can be reopened by [forwardRoute]
+void _popAndRecord(int? id, VoidCallback pop) {
+  Route<dynamic>? top = _topRoute(id);
+
+  pop();
+
+  /// [Get.back] may close a dialog or snackbar instead, so check whether [top] was really popped
+  if (top != null && !top.isActive) {
+    _recordClosedRoute(top);
+  }
+}
+
+void _recordClosedRoute(Route<dynamic> route) {
+  String? routeName = route.settings.name;
+
+  if (route is! PageRoute || routeName == null || _noForwardRoutes.contains(routeName)) {
+    return;
+  }
+
+  /// routes with path params can't be matched by [toRoute]
+  if (!Routes.pages.any((page) => page.name == routeName)) {
+    return;
+  }
+
+  _forwardRoutes.add(_ClosedRoute(routeName, route.settings.arguments));
+  if (_forwardRoutes.length > _maxForwardRoutes) {
+    _forwardRoutes.removeAt(0);
+  }
 }

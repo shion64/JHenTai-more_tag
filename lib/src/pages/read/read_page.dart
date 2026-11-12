@@ -71,16 +71,20 @@ class _ReadPageState extends State<ReadPage> with ScrollStatusListener, WindowLi
       ),
       child: Obx(
         () => EHMouseButtonListener(
-          mouseHandlers: keyboardShortcutSetting.buildMouseHandlerMap(
-            onToNext: logic.toNext,
-            onToPrev: logic.toPrev,
-            onToLeft: logic.toLeft,
-            onToRight: logic.toRight,
-            onBack: backRoute,
-            onToggleMenu: logic.toggleMenu,
-            onToggleFirstPageAlone: logic.handleM,
-            onToggleFullScreen: toggleFullScreen,
-          ),
+          mouseHandlers: {
+            /// mouse back button goes back by default, unless user binds it to another action
+            kBackMouseButton: () => backRoute(),
+            ...keyboardShortcutSetting.buildMouseHandlerMap(
+              onToNext: logic.toNext,
+              onToPrev: logic.toPrev,
+              onToLeft: logic.toLeft,
+              onToRight: logic.toRight,
+              onBack: backRoute,
+              onToggleMenu: logic.toggleMenu,
+              onToggleFirstPageAlone: logic.handleM,
+              onToggleFullScreen: toggleFullScreen,
+            ),
+          },
           child: EHKeyboardListener(
             focusNode: state.focusNode,
             keyHandlers: {

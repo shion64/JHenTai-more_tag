@@ -13,6 +13,7 @@ import '../setting/security_setting.dart';
 import '../setting/style_setting.dart';
 import '../service/log.dart';
 import '../utils/route_util.dart';
+import 'eh_mouse_navigation_listener.dart';
 
 typedef DidChangePlatformBrightnessCallback = void Function();
 typedef DidChangeAppLifecycleStateCallback = void Function(AppLifecycleState state);
@@ -124,16 +125,18 @@ class _AppManagerState extends State<AppManager> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return ScrollConfiguration(
-      behavior: UIConfig.scrollBehaviourWithScrollBar,
-      child: inBlur
-          ? Blur(
-              blur: 100,
-              blurColor: GetPlatform.isAndroid ? Colors.white : Colors.grey.shade600,
-              colorOpacity: 1,
-              child: widget.child,
-            )
-          : widget.child,
+    return EHMouseNavigationListener(
+      child: ScrollConfiguration(
+        behavior: UIConfig.scrollBehaviourWithScrollBar,
+        child: inBlur
+            ? Blur(
+                blur: 100,
+                blurColor: GetPlatform.isAndroid ? Colors.white : Colors.grey.shade600,
+                colorOpacity: 1,
+                child: widget.child,
+              )
+            : widget.child,
+      ),
     );
   }
 
