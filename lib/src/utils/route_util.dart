@@ -258,6 +258,10 @@ bool isRouteAtTop(String routeName) {
 /// forget the routes that can be reopened by forward action, called when user navigates to somewhere new
 void clearForwardRoutes() {
   _forwardRoutes.clear();
+
+  if (Get.isRegistered<DesktopLayoutPageLogic>()) {
+    Get.find<DesktopLayoutPageLogic>().clearForwardTabs();
+  }
 }
 
 /// pop current active route, triggered by mouse back button
@@ -286,12 +290,26 @@ void backActiveRoute() {
 
   if (Get.keys[leftId]?.currentState?.canPop() == true) {
     popLeftRoute();
+    return;
+  }
+
+  /// nothing to pop, go back to the previously selected tab of the desktop left tab bar
+  if (styleSetting.isInDesktopLayout && Get.isRegistered<DesktopLayoutPageLogic>()) {
+    Get.find<DesktopLayoutPageLogic>().backTab();
   }
 }
 
 /// reopen the route most recently closed by back action, triggered by mouse forward button
 void forwardRoute() {
-  if (_forwardRoutes.isEmpty || _isMouseNavigationBlocked()) {
+  if (_isMouseNavigationBlocked()) {
+    return;
+  }
+
+  /// no closed route to reopen, go forward to the next tab of the desktop left tab bar
+  if (_forwardRoutes.isEmpty) {
+    if (styleSetting.isInDesktopLayout && Get.isRegistered<DesktopLayoutPageLogic>()) {
+      Get.find<DesktopLayoutPageLogic>().forwardTab();
+    }
     return;
   }
 
