@@ -1,6 +1,6 @@
-# JHenTai: Extra Watched Tags (unofficial fork)
+# JHenTai: Extra Watched Tags and Mouse Navigation (unofficial fork)
 
-This repository ([shion64/JHenTai-more_tag](https://github.com/shion64/JHenTai-more_tag)) adds **local watched tags** to [JHenTai](https://github.com/jiangtian616/JHenTai). It is an unofficial modification and is not affiliated with the upstream project.
+This repository ([shion64/JHenTai-more_tag](https://github.com/shion64/JHenTai-more_tag)) adds **local watched tags** and **mouse back/forward navigation** to [JHenTai](https://github.com/jiangtian616/JHenTai). It is an unofficial modification and is not affiliated with the upstream project.
 
 The code was written with the help of an AI assistant (Claude). It has **not** been submitted upstream. The upstream contribution guidelines do not accept large AI-written changes without human code review.
 
@@ -25,6 +25,15 @@ E-Hentai limits how many tags you can watch online. This feature stores extra wa
 - With more than 20 extra tags, it fetches only the latest page of each tag, in small batches with short delays, and stops if a whole batch fails.
 - Pull-to-refresh fetches the extra tags again.
 
+## Mouse back / forward buttons
+
+The mouse side buttons navigate on every page.
+
+- **Back**: closes the page on top. In the desktop and tablet layouts the right pane is closed first, then the left pane. When there is nothing left to close, the desktop layout goes back to the previously selected tab of the left tab bar.
+- **Forward**: reopens the page that was closed by back, or goes forward to the next tab. The history keeps up to 20 entries and is cleared when you navigate somewhere new.
+- **Read page**: back closes the reader by default. If you bind the back button to another action in the read shortcut settings, that binding wins.
+- Ignored while a dialog or bottom sheet is shown, on the lock page, on the read page itself (it handles the buttons by itself) and on the keyboard shortcuts settings page.
+
 ## Status
 
 Checked on Linux only, by a GitHub Actions workflow (`linux-check`, run from separate `ci-*` branches), not on a local Flutter install:
@@ -32,6 +41,7 @@ Checked on Linux only, by a GitHub Actions workflow (`linux-check`, run from sep
 - The Linux release build succeeds.
 - `flutter analyze` reports no errors from these changes.
 - `flutter test` passes, including new tests for tag handling.
+- Mouse back/forward navigation was also checked by hand on the Linux desktop layout.
 
 Not verified: Android, iOS, Windows, macOS, and a real phone-sized layout.
 
